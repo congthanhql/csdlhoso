@@ -195,6 +195,7 @@ html.light .theme-toggle-thumb{transform:translateX(20px);}
     </div>
     <button class="btn-add-sidebar" onclick="openAdd()">＋ Thêm Hồ Sơ Mới</button>
     <button class="btn-add-sidebar" onclick="forceReseed()" style="background:linear-gradient(135deg,#0891b2,#0e7490);margin-bottom:10px;">🔄 Đồng Bộ Hồ Sơ Gốc</button>
+    <button class="btn-add-sidebar" onclick="resetAndReseed()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);margin-bottom:10px;">🗑 Xóa Sạch & Nạp Lại Toàn Bộ</button>
     <button class="btn-logout-sidebar" onclick="doLogout()">⎋ Đăng Xuất</button>
   </aside>
 
@@ -402,7 +403,20 @@ async function forceReseed() {
   showToast(`✅ Đã thêm ${missing.length} hồ sơ còn thiếu!`);
 }
 
-/* ─── COUNT ─── */
+/* ─── RESET & RESEED TOÀN BỘ ─── */
+async function resetAndReseed() {
+  if (!confirm('⚠️ XÓA SẠCH toàn bộ dữ liệu Firebase và nạp lại 16 hồ sơ gốc?\n\nHành động này KHÔNG THỂ hoàn tác!')) return;
+  if (!confirm('Xác nhận lần 2: Bạn chắc chắn muốn xóa sạch và nạp lại?')) return;
+  try {
+    showToast('⏳ Đang xóa và nạp lại…');
+    const hosRef = db.ref('hoSo');
+    await hosRef.remove();
+    for (const item of SEED) { await hosRef.push(item); }
+    showToast('✅ Đã nạp lại đầy đủ 16 hồ sơ gốc!');
+  } catch(err) {
+    showToast('❌ Lỗi: ' + err.message, true);
+  }
+}
 function updateCount(n) {
   ['totalCount','totalCountD'].forEach(id => {
     const el = document.getElementById(id);

@@ -3,14 +3,273 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>T-SHARE QL HỒ SƠ BIO</title>
+<title>CT-EDU Lookup</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0e14; --surface:#13161f; --surface2:#1a1e2e; --border:#252a3d;
+  --accent:#4f6ef7; --accent2:#7c3aed; --success:#10b981; --danger:#ef4444;
+  --text:#e8eaf6; --text2:#8892b0; --text3:#4a5578;
+  --mono:'JetBrains Mono',monospace; --sans:'Sora',sans-serif;
+  --radius:14px; --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+html.light {
+  --bg:#f0f2f8; --surface:#ffffff; --surface2:#f5f7ff; --border:#dde2f0;
+  --accent:#3b5de7; --accent2:#6d28d9; --success:#059669; --danger:#dc2626;
+  --text:#1a1d2e; --text2:#5a6480; --text3:#9aa3bf;
+  --shadow:0 4px 24px rgba(0,0,0,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;transition:background-color .3s,border-color .3s,color .25s,box-shadow .3s;}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-<!-- Firebase CDN -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+/* LOGIN */
+#loginPage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(79,110,247,.18) 0%,transparent 70%),var(--bg);}
+html.light #loginPage{background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,93,231,.1) 0%,transparent 70%),var(--bg);}
+.login-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:40px 36px;box-shadow:var(--shadow);}
+.login-logo{text-align:center;margin-bottom:32px;}
+.logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;box-shadow:0 8px 32px rgba(79,110,247,.35);}
+.login-logo h1{font-size:22px;font-weight:700;letter-spacing:-.3px;}
+.login-logo p{font-size:13px;color:var(--text2);margin-top:4px;}
+.field-wrap{margin-bottom:14px;}
+.field-wrap label{display:block;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:7px;}
+.field-wrap input{width:100%;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-family:var(--sans);outline:none;}
+.field-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.2);}
+.login-theme-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;cursor:pointer;user-select:none;}
+.login-theme-row:hover{border-color:var(--accent);}
+.login-theme-label{font-size:13px;font-weight:600;color:var(--text2);flex:1;}
+.btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer;margin-top:6px;letter-spacing:.2px;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
 
+/* THEME TOGGLE */
+.theme-toggle{width:44px;height:24px;background:var(--surface2);border:1px solid var(--border);border-radius:30px;cursor:pointer;position:relative;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;}
+.theme-toggle-thumb{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));transition:transform .3s cubic-bezier(.34,1.56,.64,1);transform:translateX(0);display:flex;align-items:center;justify-content:center;font-size:10px;}
+html.light .theme-toggle-thumb{transform:translateX(20px);}
+.theme-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;user-select:none;}
+.theme-toggle-row:hover{border-color:var(--accent);}
+.theme-toggle-label{font-size:13px;font-weight:600;color:var(--text2);flex:1;}
+
+/* APP */
+#app{display:none;min-height:100vh;}
+@media(min-width:769px){
+  #app.active{display:flex;flex-direction:row;}
+  .sidebar{width:280px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);padding:28px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;}
+  .main-content{flex:1;padding:28px;overflow-y:auto;max-height:100vh;}
+  .top-bar{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+  .search-box{flex:1;display:flex;gap:10px;}
+  .search-box input{flex:1;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;}
+  .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.15);}
+  .search-box button{padding:12px 20px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
+  .search-box button:hover{opacity:.85;}
+  .grid-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex:1;}
+  .page-title{font-size:22px;font-weight:700;}
+  .page-sub{font-size:13px;color:var(--text2);margin-top:3px;}
+}
+@media(max-width:768px){
+  #app.active{display:flex;flex-direction:column;}
+  .sidebar,.desktop-only{display:none!important;}
+  .main-content{padding:0;flex:1;}
+  .mobile-header{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 12px;}
+  .mobile-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .mobile-title{font-size:17px;font-weight:700;}
+  .mobile-actions{display:flex;gap:8px;}
+  .icon-btn{width:36px;height:36px;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;background:var(--surface2);border:1px solid var(--border);}
+  .icon-btn.logout{background:var(--danger);color:#fff;border-color:var(--danger);}
+  .mobile-search{display:flex;gap:8px;}
+  .mobile-search input{flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;}
+  .mobile-search input:focus{border-color:var(--accent);}
+  .mobile-search button{padding:10px 14px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:13px;font-family:var(--sans);}
+  .grid-list{display:flex;flex-direction:column;gap:0;padding:8px 12px 80px;}
+  .record-card{border-radius:12px!important;margin-bottom:8px;}
+  .fab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:50%;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(79,110,247,.5);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .top-bar,.page-header{display:none!important;}
+}
+@media(min-width:769px){.mobile-only,.fab,.mobile-header{display:none!important;}}
+
+/* SIDEBAR */
+.sidebar-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border);}
+.sb-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.sb-title{font-size:16px;font-weight:700;line-height:1.2;}
+.sb-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.sb-stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.sb-stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.sb-stat-value{font-size:28px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+.sb-spacer{flex:1;}
+.btn-add-sidebar{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-add-sidebar:hover{opacity:.9;transform:translateY(-1px);}
+.btn-logout-sidebar{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--text2);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-logout-sidebar:hover{border-color:var(--danger);color:var(--danger);}
+.count-badge{display:inline-flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-family:var(--mono);color:var(--text2);}
+.count-badge span{color:var(--text);font-weight:600;margin-right:4px;}
+
+/* CARDS */
+.record-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:.25s;display:flex;align-items:center;gap:14px;}
+.record-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.card-icon{width:44px;height:44px;background:linear-gradient(135deg,rgba(79,110,247,.2),rgba(124,58,237,.2));border:1px solid rgba(79,110,247,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.card-body{flex:1;min-width:0;}
+.card-uid{font-size:12px;font-family:var(--mono);color:var(--accent);font-weight:500;margin-bottom:3px;}
+.card-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-meta{font-size:12px;color:var(--text2);margin-top:3px;}
+.card-arrow{color:var(--text3);font-size:16px;flex-shrink:0;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-state .emoji{font-size:40px;margin-bottom:12px;}
+.loading-state{text-align:center;padding:40px;color:var(--text2);font-size:14px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:20px;z-index:999;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:460px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:modalIn .25s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal-close{position:absolute;right:16px;top:16px;width:32px;height:32px;border:none;border-radius:8px;background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:var(--danger);color:#fff;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.detail-grid{display:grid;gap:10px;}
+.detail-row{display:flex;align-items:flex-start;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.detail-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);width:110px;flex-shrink:0;padding-top:1px;}
+.detail-value{font-size:14px;font-weight:500;flex:1;word-break:break-all;}
+.detail-value.mono{font-family:var(--mono);color:var(--accent);font-size:13px;}
+.btn-open-file{display:flex;align-items:center;gap:8px;margin-top:18px;padding:13px 20px;background:linear-gradient(135deg,var(--success),#059669);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;text-decoration:none;width:100%;justify-content:center;}
+.btn-open-file:hover{opacity:.9;}
+.form-grid{display:grid;gap:12px;}
+.form-field label{display:block;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
+.form-field input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;}
+.form-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.15);}
+.form-field input::placeholder{color:var(--text3);}
+.form-actions{display:flex;gap:10px;margin-top:4px;}
+.btn-cancel{flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;}
+.btn-cancel:hover{border-color:var(--danger);color:var(--danger);}
+.btn-save{flex:2;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;}
+.btn-save:disabled{opacity:.5;cursor:not-allowed;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--success);color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:9999;transition:.35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 8px 24px rgba(16,185,129,.4);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--danger);box-shadow:0 8px 24px rgba(239,68,68,.4);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">📂</div>
+      <h1>CT-EDU Lookup</h1>
+      <p>Hệ thống quản lý hồ sơ</p>
+    </div>
+    <div class="field-wrap">
+      <label>Tên đăng nhập</label>
+      <input id="loginUser" placeholder="Nhập tài khoản" autocomplete="username">
+    </div>
+    <div class="field-wrap">
+      <label>Mật khẩu</label>
+      <input id="loginPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password">
+    </div>
+    <div class="login-theme-row" onclick="toggleTheme()">
+      <span class="login-theme-label" id="loginThemeLabel">🌙 Giao diện tối</span>
+      <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Đăng Nhập</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar desktop-only">
+    <div class="sidebar-logo">
+      <div class="sb-icon">📂</div>
+      <div><div class="sb-title">CT-EDU</div><div class="sb-sub">Lookup System</div></div>
+    </div>
+    <div class="sb-stat-box">
+      <div class="sb-stat-label">Tổng Hồ Sơ</div>
+      <div class="sb-stat-value" id="totalCount">—</div>
+    </div>
+    <div class="sb-spacer"></div>
+    <div class="theme-toggle-row" onclick="toggleTheme()">
+      <span class="theme-toggle-label" id="themeLabel">🌙 Giao diện tối</span>
+      <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
+    </div>
+    <button class="btn-add-sidebar" onclick="openAdd()">＋ Thêm Hồ Sơ Mới</button>
+    <button class="btn-logout-sidebar" onclick="doLogout()">⎋ Đăng Xuất</button>
+  </aside>
+
+  <main class="main-content">
+    <div class="mobile-header mobile-only">
+      <div class="mobile-header-top">
+        <div class="mobile-title">📂 CT-EDU</div>
+        <div class="mobile-actions">
+          <button class="icon-btn" onclick="toggleTheme()" id="mobileThemeBtn">🌙</button>
+          <button class="icon-btn logout" onclick="doLogout()">⎋</button>
+        </div>
+      </div>
+      <div class="mobile-search">
+        <input id="searchMobile" placeholder="🔍 UID hoặc Mã tham chiếu…" oninput="syncSearch(this)" onkeypress="if(event.key==='Enter')doSearch()">
+        <button onclick="doSearch()">Tìm</button>
+      </div>
+    </div>
+
+    <div class="top-bar desktop-only">
+      <div class="page-header" style="margin:0">
+        <div>
+          <div class="page-title">Danh Sách Hồ Sơ</div>
+          <div class="page-sub">Tất cả hồ sơ trong hệ thống</div>
+        </div>
+        <div class="count-badge"><span id="totalCountD">—</span> hồ sơ</div>
+      </div>
+      <div class="search-box">
+        <input id="searchDesktop" placeholder="🔍 Nhập UID hoặc Mã tham chiếu…" oninput="syncSearch(this)" onkeypress="if(event.key==='Enter')doSearch()">
+        <button onclick="doSearch()">Tra Cứu</button>
+      </div>
+    </div>
+
+    <div id="recordList" class="grid-list">
+      <div class="loading-state">⏳ Đang tải dữ liệu…</div>
+    </div>
+  </main>
+</div>
+
+<button class="fab mobile-only" onclick="openAdd()">＋</button>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeModal('detailOverlay')">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+    <div class="modal-title">🗂 Thông Tin Hồ Sơ</div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="addOverlay" onclick="if(event.target===this)closeModal('addOverlay')">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal('addOverlay')">✕</button>
+    <div class="modal-title">＋ Thêm Hồ Sơ Mới</div>
+    <div class="form-grid">
+      <div class="form-field"><label>Mã UID *</label><input id="fUid" placeholder="VD: 0267"></div>
+      <div class="form-field"><label>Mã Tham Chiếu *</label><input id="fCode" placeholder="VD: MC-26S"></div>
+      <div class="form-field"><label>Tên PNG *</label><input id="fPng" placeholder="VD: Con cái - Gia Đạo"></div>
+      <div class="form-field"><label>Ngày Xuất Bản</label><input id="fDate" placeholder="VD: 25/04/2026"></div>
+      <div class="form-field"><label>Tên Khách Hàng</label><input id="fKh" placeholder="VD: Nguyễn Văn A"></div>
+      <div class="form-field"><label>Link Hồ Sơ (Google Drive)</label><input id="fLink" placeholder="https://drive.google.com/…"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal('addOverlay')">Huỷ</button>
+      <button class="btn-save" id="btnSave" onclick="saveRecord()">💾 Lưu Hồ Sơ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- All JS in one non-module script using Firebase compat CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+/* ─── FIREBASE INIT ─── */
 const firebaseConfig = {
   apiKey: "AIzaSyDtAU-Iqn-u39_mgkxRZ3fIF_Kyxqn-Gyg",
   authDomain: "csdl-bio.firebaseapp.com",
@@ -21,18 +280,10 @@ const firebaseConfig = {
   appId: "1:568258817515:web:7c88342cc86dc9b7a63dae",
   measurementId: "G-2P64TFQCEG"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-window._fbDb = db;
-window._fbRef = ref;
-window._fbPush = push;
-window._fbOnValue = onValue;
-window._fbSet = set;
-
-// Seed dữ liệu gốc nếu cần
-const seedData = [
+const SEED = [
   {uid:"0267",code:"MC-26S",png:"Con cái - Gia Đạo",date:"25/04/2026",kh:"Thị Hồng",link:"https://drive.google.com/file/d/1GHQbdpXubGBW3n6AolrQsIa-hK7L2Z1h/view?usp=sharing"},
   {uid:"1985",code:"MT-85V",png:"Cô Thỏa",date:"10/03/2026",kh:"Lô Thị Thỏa",link:"https://drive.google.com/file/d/1Vjs_VDTJlmC6WNi4gRzcih4AY1TydkmV/view?usp=sharing"},
   {uid:"2709",code:"HT-89X",png:"Tổng qua tháng 5",date:"04/05/2026",kh:"Bùi Ngọc Huyền Trân",link:"https://drive.google.com/file/d/1pRwYhIbRd74mhw0pqAlzg6cJUAbVdD34/view?usp=drive_link"},
@@ -51,1187 +302,149 @@ const seedData = [
   {uid:"0000",code:"VIP2026",png:"Tổng quan năm 2026 HCT",date:"04/2026",kh:"Reader",link:"https://drive.google.com/file/d/17wkki6I0n3uStvqStzKn4VbqZRZeUssm/view?usp=drive_link"}
 ];
 
-window._seedData = seedData;
-
-document.addEventListener('DOMContentLoaded', () => {
-  window._initFirebase();
-});
-</script>
-
-<style>
-:root {
-  --bg: #0c0e14;
-  --surface: #13161f;
-  --surface2: #1a1e2e;
-  --border: #252a3d;
-  --accent: #4f6ef7;
-  --accent2: #7c3aed;
-  --success: #10b981;
-  --danger: #ef4444;
-  --text: #e8eaf6;
-  --text2: #8892b0;
-  --text3: #4a5578;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Sora', sans-serif;
-  --radius: 14px;
-  --shadow: 0 4px 24px rgba(0,0,0,.4);
-  --transition-theme: background .3s, color .3s, border-color .3s, box-shadow .3s;
-}
-
-/* ─── LIGHT THEME ─── */
-html.light {
-  --bg: #f0f2f8;
-  --surface: #ffffff;
-  --surface2: #f5f7ff;
-  --border: #dde2f0;
-  --accent: #3b5de7;
-  --accent2: #6d28d9;
-  --success: #059669;
-  --danger: #dc2626;
-  --text: #1a1d2e;
-  --text2: #5a6480;
-  --text3: #9aa3bf;
-  --shadow: 0 4px 24px rgba(0,0,0,.10);
-}
-
-html.light ::-webkit-scrollbar-track { background: var(--bg); }
-html.light ::-webkit-scrollbar-thumb { background: var(--border); }
-
-* { margin:0; padding:0; box-sizing:border-box; transition: background-color .3s, border-color .3s, color .25s, box-shadow .3s; }
-html, body { height:100%; font-family: var(--sans); background: var(--bg); color: var(--text); }
-
-/* ─── THEME TOGGLE ─── */
-.theme-toggle {
-  width:44px; height:24px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:30px;
-  cursor:pointer;
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  padding:2px;
-  transition: background .3s, border-color .3s;
-  flex-shrink:0;
-}
-
-.theme-toggle-thumb {
-  width:18px; height:18px;
-  border-radius:50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-  transform: translateX(0);
-  display:flex; align-items:center; justify-content:center;
-  font-size:10px;
-}
-
-html.light .theme-toggle-thumb {
-  transform: translateX(20px);
-}
-
-.theme-toggle-row {
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:12px 14px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:12px;
-  margin-bottom:10px;
-  cursor:pointer;
-  user-select:none;
-  transition:.2s;
-}
-
-.theme-toggle-row:hover { border-color: var(--accent); }
-
-.theme-toggle-label {
-  font-size:13px;
-  font-weight:600;
-  color: var(--text2);
-  flex:1;
-}
-
-/* Light mode specific tweaks */
-html.light .sidebar {
-  box-shadow: 2px 0 16px rgba(0,0,0,.06);
-}
-
-html.light .record-card:hover {
-  box-shadow: 0 8px 24px rgba(59,93,231,.12);
-}
-
-html.light .login-card {
-  box-shadow: 0 10px 40px rgba(0,0,0,.10);
-}
-
-html.light #loginPage {
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,93,231,.12) 0%, transparent 70%), var(--bg);
-}
-
-html.light .modal-card {
-  box-shadow: 0 20px 60px rgba(0,0,0,.18);
-}
-
-html.light .sb-stat-value { color: var(--accent); }
-
-html.light .card-uid { color: var(--accent); }
-
-html.light .detail-value.mono { color: var(--accent); }
-::-webkit-scrollbar { width:6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
-
-/* ─── LOGIN ─── */
-#loginPage {
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,110,247,.18) 0%, transparent 70%), var(--bg);
-}
-
-.login-card {
-  width:100%;
-  max-width:420px;
-  background: var(--surface);
-  border:1px solid var(--border);
-  border-radius:24px;
-  padding:40px 36px;
-  box-shadow: var(--shadow);
-}
-
-.login-logo {
-  text-align:center;
-  margin-bottom:32px;
-}
-
-.login-logo .logo-icon {
-  width:64px; height:64px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius:18px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  font-size:28px;
-  margin-bottom:14px;
-  box-shadow: 0 8px 32px rgba(79,110,247,.35);
-}
-
-.login-logo h1 {
-  font-size:22px;
-  font-weight:700;
-  letter-spacing:-.3px;
-}
-
-.login-logo p {
-  font-size:13px;
-  color: var(--text2);
-  margin-top:4px;
-}
-
-.field-wrap {
-  margin-bottom:14px;
-}
-
-.field-wrap label {
-  display:block;
-  font-size:12px;
-  font-weight:600;
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  color: var(--text2);
-  margin-bottom:7px;
-}
-
-.field-wrap input {
-  width:100%;
-  padding:13px 16px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:12px;
-  color: var(--text);
-  font-size:15px;
-  font-family: var(--sans);
-  outline:none;
-  transition:.2s;
-}
-
-.field-wrap input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79,110,247,.2);
-}
-
-.btn-primary {
-  width:100%;
-  padding:14px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-size:15px;
-  font-weight:700;
-  font-family: var(--sans);
-  cursor:pointer;
-  transition:.2s;
-  margin-top:6px;
-  letter-spacing:.2px;
-}
-
-.btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow: 0 6px 20px rgba(79,110,247,.4); }
-.btn-primary:active { transform:none; }
-
-/* ─── APP ─── */
-#app { display:none; min-height:100vh; }
-
-/* DESKTOP LAYOUT */
-@media(min-width:769px) {
-  #app { display:none; flex-direction:row; }
-  #app.active { display:flex; }
-
-  .sidebar {
-    width:280px;
-    min-height:100vh;
-    background: var(--surface);
-    border-right:1px solid var(--border);
-    padding:28px 20px;
-    position:sticky;
-    top:0;
-    height:100vh;
-    overflow-y:auto;
-    flex-shrink:0;
-    display:flex;
-    flex-direction:column;
-  }
-
-  .main-content {
-    flex:1;
-    padding:28px;
-    overflow-y:auto;
-    max-height:100vh;
-  }
-
-  .top-bar {
-    display:flex;
-    align-items:center;
-    gap:14px;
-    margin-bottom:24px;
-  }
-
-  .search-box {
-    flex:1;
-    display:flex;
-    gap:10px;
-  }
-
-  .search-box input {
-    flex:1;
-    padding:12px 16px;
-    background: var(--surface);
-    border:1px solid var(--border);
-    border-radius:12px;
-    color: var(--text);
-    font-size:14px;
-    font-family: var(--sans);
-    outline:none;
-    transition:.2s;
-  }
-
-  .search-box input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(79,110,247,.15);
-  }
-
-  .search-box button {
-    padding:12px 20px;
-    background: var(--accent);
-    border:none;
-    border-radius:12px;
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-    font-family: var(--sans);
-    white-space:nowrap;
-    transition:.2s;
-  }
-
-  .search-box button:hover { opacity:.85; }
-
-  .grid-list {
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap:14px;
-  }
-}
-
-/* MOBILE LAYOUT */
-@media(max-width:768px) {
-  #app.active { display:flex; flex-direction:column; }
-
-  .sidebar { display:none !important; }
-
-  .main-content {
-    padding:0;
-    flex:1;
-  }
-
-  .mobile-header {
-    position:sticky;
-    top:0;
-    z-index:50;
-    background: var(--surface);
-    border-bottom:1px solid var(--border);
-    padding:14px 16px 12px;
-  }
-
-  .mobile-header-top {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:10px;
-  }
-
-  .mobile-title { font-size:17px; font-weight:700; }
-
-  .mobile-actions { display:flex; gap:8px; }
-
-  .icon-btn {
-    width:36px; height:36px;
-    border:none;
-    border-radius:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    font-size:16px;
-    transition:.2s;
-  }
-
-  .icon-btn.add { background: linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff; }
-  .icon-btn.logout { background: var(--surface2); border:1px solid var(--border); }
-
-  .mobile-search {
-    display:flex;
-    gap:8px;
-  }
-
-  .mobile-search input {
-    flex:1;
-    padding:10px 14px;
-    background: var(--surface2);
-    border:1px solid var(--border);
-    border-radius:10px;
-    color: var(--text);
-    font-size:14px;
-    font-family: var(--sans);
-    outline:none;
-  }
-
-  .mobile-search input:focus { border-color: var(--accent); }
-
-  .mobile-search button {
-    padding:10px 14px;
-    background: var(--accent);
-    border:none;
-    border-radius:10px;
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-    font-size:13px;
-    font-family: var(--sans);
-  }
-
-  .grid-list {
-    display:flex;
-    flex-direction:column;
-    gap:0;
-    padding:8px 12px;
-  }
-
-  .record-card {
-    border-radius:12px !important;
-    margin-bottom:8px;
-  }
-}
-
-/* ─── SIDEBAR CONTENT ─── */
-.sidebar-logo {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:32px;
-  padding-bottom:24px;
-  border-bottom:1px solid var(--border);
-}
-
-.sb-icon {
-  width:44px; height:44px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  flex-shrink:0;
-}
-
-.sb-title { font-size:16px; font-weight:700; line-height:1.2; }
-.sb-sub { font-size:11px; color: var(--text2); margin-top:2px; }
-
-.sb-stat-box {
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:12px;
-}
-
-.sb-stat-label { font-size:11px; color: var(--text2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
-.sb-stat-value { font-size:28px; font-weight:700; font-family: var(--mono); color: var(--accent); }
-
-.sb-spacer { flex:1; }
-
-.btn-add-sidebar {
-  width:100%;
-  padding:13px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-size:14px;
-  font-weight:700;
-  font-family: var(--sans);
-  cursor:pointer;
-  transition:.2s;
-  margin-bottom:10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-
-.btn-add-sidebar:hover { opacity:.9; transform:translateY(-1px); }
-
-.btn-logout-sidebar {
-  width:100%;
-  padding:11px;
-  background: transparent;
-  border:1px solid var(--border);
-  border-radius:12px;
-  color: var(--text2);
-  font-size:13px;
-  font-weight:600;
-  font-family: var(--sans);
-  cursor:pointer;
-  transition:.2s;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-
-.btn-logout-sidebar:hover { border-color: var(--danger); color: var(--danger); }
-
-/* ─── RECORD CARD ─── */
-.record-card {
-  background: var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:16px;
-  cursor:pointer;
-  transition:.25s;
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-
-.record-card:hover {
-  border-color: var(--accent);
-  transform:translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.3);
-}
-
-.card-icon {
-  width:44px; height:44px;
-  background: linear-gradient(135deg, rgba(79,110,247,.2), rgba(124,58,237,.2));
-  border:1px solid rgba(79,110,247,.3);
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:18px;
-  flex-shrink:0;
-}
-
-.card-body { flex:1; min-width:0; }
-
-.card-uid {
-  font-size:12px;
-  font-family: var(--mono);
-  color: var(--accent);
-  font-weight:500;
-  margin-bottom:3px;
-}
-
-.card-name {
-  font-size:14px;
-  font-weight:600;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.card-meta {
-  font-size:12px;
-  color: var(--text2);
-  margin-top:3px;
-}
-
-.card-arrow {
-  color: var(--text3);
-  font-size:16px;
-  flex-shrink:0;
-}
-
-/* ─── PAGE HEADER (desktop) ─── */
-.page-header {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:24px;
-}
-
-.page-title { font-size:22px; font-weight:700; }
-.page-sub { font-size:13px; color: var(--text2); margin-top:3px; }
-
-/* ─── BADGE COUNT ─── */
-.count-badge {
-  display:inline-flex;
-  align-items:center;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:4px 12px;
-  font-size:12px;
-  font-family: var(--mono);
-  color: var(--text2);
-}
-
-.count-badge span { color: var(--text); font-weight:600; margin-right:4px; }
-
-/* ─── EMPTY / NOT FOUND ─── */
-.empty-state {
-  text-align:center;
-  padding:60px 20px;
-  color: var(--text2);
-}
-
-.empty-state .emoji { font-size:40px; margin-bottom:12px; }
-.empty-state p { font-size:15px; }
-
-/* ─── LOADING ─── */
-.loading-state {
-  text-align:center;
-  padding:40px;
-  color: var(--text2);
-  font-size:14px;
-}
-
-/* ─── MODAL ─── */
-.overlay {
-  position:fixed;
-  inset:0;
-  background: rgba(0,0,0,.65);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  z-index:999;
-  backdrop-filter:blur(4px);
-}
-
-.overlay.open { display:flex; }
-
-.modal-card {
-  background: var(--surface);
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:28px;
-  width:100%;
-  max-width:460px;
-  position:relative;
-  box-shadow: 0 20px 60px rgba(0,0,0,.6);
-  animation: modalIn .25s ease;
-}
-
-@keyframes modalIn {
-  from { opacity:0; transform:scale(.96) translateY(12px); }
-  to   { opacity:1; transform:scale(1) translateY(0); }
-}
-
-.modal-close {
-  position:absolute;
-  right:16px; top:16px;
-  width:32px; height:32px;
-  border:none;
-  border-radius:8px;
-  background: var(--surface2);
-  color: var(--text2);
-  font-size:16px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:.2s;
-}
-
-.modal-close:hover { background: var(--danger); color:#fff; }
-
-.modal-title {
-  font-size:17px;
-  font-weight:700;
-  margin-bottom:20px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-/* DETAIL */
-.detail-grid {
-  display:grid;
-  gap:10px;
-}
-
-.detail-row {
-  display:flex;
-  align-items:flex-start;
-  gap:12px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:12px 14px;
-}
-
-.detail-label {
-  font-size:11px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.4px;
-  color: var(--text2);
-  width:110px;
-  flex-shrink:0;
-  padding-top:1px;
-}
-
-.detail-value {
-  font-size:14px;
-  font-weight:500;
-  flex:1;
-  word-break:break-all;
-}
-
-.detail-value.mono { font-family: var(--mono); color: var(--accent); font-size:13px; }
-
-.btn-open-file {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-top:18px;
-  padding:13px 20px;
-  background: linear-gradient(135deg, var(--success), #059669);
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-size:14px;
-  font-weight:700;
-  font-family: var(--sans);
-  cursor:pointer;
-  text-decoration:none;
-  width:100%;
-  justify-content:center;
-  transition:.2s;
-}
-
-.btn-open-file:hover { opacity:.9; }
-
-/* ADD FORM */
-.form-grid {
-  display:grid;
-  gap:12px;
-}
-
-.form-field label {
-  display:block;
-  font-size:11px;
-  font-weight:600;
-  letter-spacing:.4px;
-  text-transform:uppercase;
-  color: var(--text2);
-  margin-bottom:6px;
-}
-
-.form-field input {
-  width:100%;
-  padding:12px 14px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:10px;
-  color: var(--text);
-  font-size:14px;
-  font-family: var(--sans);
-  outline:none;
-  transition:.2s;
-}
-
-.form-field input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79,110,247,.15);
-}
-
-.form-field input::placeholder { color: var(--text3); }
-
-.form-actions {
-  display:flex;
-  gap:10px;
-  margin-top:4px;
-}
-
-.btn-cancel {
-  flex:1;
-  padding:12px;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:10px;
-  color: var(--text2);
-  font-size:14px;
-  font-weight:600;
-  font-family: var(--sans);
-  cursor:pointer;
-  transition:.2s;
-}
-
-.btn-cancel:hover { border-color: var(--danger); color: var(--danger); }
-
-.btn-save {
-  flex:2;
-  padding:12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border:none;
-  border-radius:10px;
-  color:#fff;
-  font-size:14px;
-  font-weight:700;
-  font-family: var(--sans);
-  cursor:pointer;
-  transition:.2s;
-}
-
-.btn-save:hover { opacity:.9; }
-.btn-save:disabled { opacity:.5; cursor:not-allowed; }
-
-/* TOAST */
-.toast {
-  position:fixed;
-  bottom:24px;
-  left:50%;
-  transform:translateX(-50%) translateY(80px);
-  background: var(--success);
-  color:#fff;
-  padding:12px 24px;
-  border-radius:30px;
-  font-size:14px;
-  font-weight:600;
-  z-index:9999;
-  transition:.35s cubic-bezier(.34,1.56,.64,1);
-  white-space:nowrap;
-  box-shadow: 0 8px 24px rgba(16,185,129,.4);
-}
-
-.toast.show { transform:translateX(-50%) translateY(0); }
-.toast.error { background: var(--danger); box-shadow: 0 8px 24px rgba(239,68,68,.4); }
-
-/* ─── MOBILE ONLY ─── */
-@media(max-width:768px) {
-  .desktop-only { display:none !important; }
-  .mobile-list-wrap { padding:8px 12px 80px; }
-  .fab {
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    width:54px; height:54px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border:none;
-    border-radius:50%;
-    color:#fff;
-    font-size:22px;
-    cursor:pointer;
-    box-shadow: 0 8px 24px rgba(79,110,247,.5);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:.2s;
-    z-index:100;
-  }
-  .fab:hover { transform:scale(1.08); }
-  .page-header { display:none; }
-  .top-bar { display:none !important; }
-}
-
-@media(min-width:769px) {
-  .mobile-only { display:none !important; }
-  .fab { display:none !important; }
-  .mobile-header { display:none !important; }
-}
-</style>
-</head>
-<body>
-
-<!-- ─── LOGIN ─── -->
-<div id="loginPage">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="logo-icon">📂</div>
-      <h1>CT-EDU Lookup</h1>
-      <p>Hệ thống quản lý hồ sơ</p>
-    </div>
-
-    <div class="field-wrap">
-      <label>Tên đăng nhập</label>
-      <input id="loginUser" placeholder="Nhập tài khoản" autocomplete="username">
-    </div>
-
-    <div class="field-wrap">
-      <label>Mật khẩu</label>
-      <input id="loginPass" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password">
-    </div>
-
-    <button class="btn-primary" onclick="doLogin()">Đăng Nhập</button>
-  </div>
-</div>
-
-<!-- ─── APP ─── -->
-<div id="app">
-
-  <!-- SIDEBAR (desktop) -->
-  <aside class="sidebar desktop-only">
-    <div class="sidebar-logo">
-      <div class="sb-icon">📂</div>
-      <div>
-        <div class="sb-title">CSDL HỒ SƠ</div>
-        <div class="sb-sub">T-SHARE TRẢI BÀI</div>
-      </div>
-    </div>
-
-    <div class="sb-stat-box">
-      <div class="sb-stat-label">Tổng Hồ Sơ</div>
-      <div class="sb-stat-value" id="totalCount">—</div>
-    </div>
-
-    <div class="sb-spacer"></div>
-
-    <div class="theme-toggle-row" onclick="toggleTheme()">
-      <span class="theme-toggle-label" id="themeLabel">🌙 Giao diện tối</span>
-      <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
-    </div>
-
-    <button class="btn-add-sidebar" onclick="openAdd()">
-      ＋ Thêm Hồ Sơ Mới
-    </button>
-
-    <button class="btn-logout-sidebar" onclick="doLogout()">
-      ⎋ Đăng Xuất
-    </button>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main-content">
-
-    <!-- Mobile header -->
-    <div class="mobile-header mobile-only">
-      <div class="mobile-header-top">
-        <div class="mobile-title">📂 CT-EDU</div>
-        <div class="mobile-actions">
-          <button class="icon-btn" onclick="toggleTheme()" id="mobileThemeBtn" style="background:var(--surface2);border:1px solid var(--border);font-size:17px;">🌙</button>
-          <button class="icon-btn logout" onclick="doLogout()">⎋</button>
-        </div>
-      </div>
-      <div class="mobile-search">
-        <input id="searchMobile" placeholder="🔍 UID hoặc Mã tham chiếu…" onkeypress="handleEnterMobile(event)">
-        <button onclick="doSearch()">Tìm</button>
-      </div>
-    </div>
-
-    <!-- Desktop top bar -->
-    <div class="top-bar desktop-only">
-      <div class="page-header" style="margin:0;flex:1;">
-        <div>
-          <div class="page-title">Danh Sách Hồ Sơ</div>
-          <div class="page-sub">Tất cả hồ sơ trong hệ thống</div>
-        </div>
-        <div class="count-badge"><span id="totalCountD">—</span> hồ sơ</div>
-      </div>
-      <div class="search-box">
-        <input id="searchDesktop" placeholder="🔍 Nhập UID hoặc Mã tham chiếu…" onkeypress="handleEnterDesktop(event)">
-        <button onclick="doSearch()">Tra Cứu</button>
-      </div>
-    </div>
-
-    <!-- List -->
-    <div id="recordList" class="grid-list mobile-list-wrap">
-      <div class="loading-state">⏳ Đang tải dữ liệu…</div>
-    </div>
-
-  </main>
-</div>
-
-<!-- FAB mobile -->
-<button class="fab mobile-only" onclick="openAdd()">＋</button>
-
-<!-- ─── DETAIL MODAL ─── -->
-<div class="overlay" id="detailOverlay" onclick="overlayClick(event,'detailOverlay')">
-  <div class="modal-card">
-    <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
-    <div class="modal-title">🗂 Thông Tin Hồ Sơ</div>
-    <div id="detailBody"></div>
-  </div>
-</div>
-
-<!-- ─── ADD MODAL ─── -->
-<div class="overlay" id="addOverlay" onclick="overlayClick(event,'addOverlay')">
-  <div class="modal-card">
-    <button class="modal-close" onclick="closeModal('addOverlay')">✕</button>
-    <div class="modal-title">＋ Thêm Hồ Sơ Mới</div>
-    <div class="form-grid">
-      <div class="form-field">
-        <label>Mã UID *</label>
-        <input id="fUid" placeholder="VD: 0267">
-      </div>
-      <div class="form-field">
-        <label>Mã Tham Chiếu *</label>
-        <input id="fCode" placeholder="VD: MC-26S">
-      </div>
-      <div class="form-field">
-        <label>Tên PNG *</label>
-        <input id="fPng" placeholder="VD: Con cái - Gia Đạo">
-      </div>
-      <div class="form-field">
-        <label>Ngày Xuất Bản</label>
-        <input id="fDate" placeholder="VD: 25/04/2026">
-      </div>
-      <div class="form-field">
-        <label>Tên Khách Hàng</label>
-        <input id="fKh" placeholder="VD: Nguyễn Văn A">
-      </div>
-      <div class="form-field">
-        <label>Link Hồ Sơ (Google Drive)</label>
-        <input id="fLink" placeholder="https://drive.google.com/…">
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-cancel" onclick="closeModal('addOverlay')">Huỷ</button>
-      <button class="btn-save" id="btnSave" onclick="saveRecord()">💾 Lưu Hồ Sơ</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
+/* ─── STATE ─── */
 const LOGIN_USER = "bioverify@goooglegroups.com";
 const LOGIN_PASS = "Thanh123@";
-
 let allRecords = [];
+let searchQuery = '';
 
 /* ─── THEME ─── */
 function applyTheme(isLight) {
-  const html = document.documentElement;
-  const label = document.getElementById('themeLabel');
-  const mobileBtn = document.getElementById('mobileThemeBtn');
-  if (isLight) {
-    html.classList.add('light');
-    if (label) label.textContent = '☀️ Giao diện sáng';
-    if (mobileBtn) mobileBtn.textContent = '☀️';
-  } else {
-    html.classList.remove('light');
-    if (label) label.textContent = '🌙 Giao diện tối';
-    if (mobileBtn) mobileBtn.textContent = '🌙';
-  }
+  document.documentElement.classList.toggle('light', isLight);
+  const label = isLight ? '☀️ Giao diện sáng' : '🌙 Giao diện tối';
+  const icon  = isLight ? '☀️' : '🌙';
+  ['themeLabel','loginThemeLabel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = label;
+  });
+  const mb = document.getElementById('mobileThemeBtn');
+  if (mb) mb.textContent = icon;
 }
 
 function toggleTheme() {
-  const isCurrentlyLight = document.documentElement.classList.contains('light');
-  const newIsLight = !isCurrentlyLight;
-  localStorage.setItem('ct-edu-theme', newIsLight ? 'light' : 'dark');
-  applyTheme(newIsLight);
+  const now = document.documentElement.classList.contains('light');
+  const next = !now;
+  localStorage.setItem('ct-edu-theme', next ? 'light' : 'dark');
+  applyTheme(next);
 }
 
-// Apply saved theme on load
-(function() {
-  const saved = localStorage.getItem('ct-edu-theme');
-  if (saved === 'light') applyTheme(true);
-})();
+// Apply saved theme immediately
+applyTheme(localStorage.getItem('ct-edu-theme') === 'light');
 
-
+/* ─── LOGIN ─── */
+function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
   if (u === LOGIN_USER && p === LOGIN_PASS) {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('app').classList.add('active');
-    document.getElementById('app').style.display = 'flex';
-    listenRecords();
+    startListening();
   } else {
-    showToast('❌ Sai thông tin đăng nhập', true);
+    showToast('❌ Sai tên đăng nhập hoặc mật khẩu', true);
   }
 }
 
-function doLogout() {
-  location.reload();
-}
+function doLogout() { location.reload(); }
 
-document.addEventListener('keypress', e => {
-  const lp = document.getElementById('loginPage');
-  if (lp.style.display !== 'none' && e.key === 'Enter') doLogin();
-});
+document.getElementById('loginUser').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('loginPass').focus(); });
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
-/* ─── FIREBASE INIT (runs after module loads) ─── */
-window._initFirebase = function() {
-  const db = window._fbDb;
-  const r = window._fbRef;
-
-  // Check if DB is empty, seed if needed
-  const hosRef = r(db, 'hoSo');
-  window._fbOnValue(hosRef, snap => {
+/* ─── FIREBASE LISTEN ─── */
+function startListening() {
+  const hosRef = db.ref('hoSo');
+  // Seed if empty
+  hosRef.once('value', snap => {
     if (!snap.exists()) {
-      // seed
-      window._seedData.forEach(item => {
-        window._fbPush(hosRef, item);
-      });
+      SEED.forEach(item => hosRef.push(item));
     }
-  }, { onlyOnce: true });
-};
-
-/* ─── LISTEN RECORDS ─── */
-function listenRecords() {
-  const db = window._fbDb;
-  const r = window._fbRef;
-  const hosRef = r(db, 'hoSo');
-
-  window._fbOnValue(hosRef, snap => {
+  });
+  // Realtime listener
+  hosRef.on('value', snap => {
     allRecords = [];
     if (snap.exists()) {
-      snap.forEach(child => {
-        allRecords.push({ _key: child.key, ...child.val() });
-      });
-      // newest first
+      snap.forEach(child => allRecords.push({ _key: child.key, ...child.val() }));
       allRecords.reverse();
     }
     updateCount(allRecords.length);
-    renderList(allRecords);
+    renderList(filterRecords());
   });
 }
 
+/* ─── COUNT ─── */
 function updateCount(n) {
-  const el1 = document.getElementById('totalCount');
-  const el2 = document.getElementById('totalCountD');
-  if (el1) el1.textContent = n;
-  if (el2) el2.textContent = n;
+  ['totalCount','totalCountD'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = n;
+  });
 }
 
 /* ─── RENDER ─── */
+function filterRecords() {
+  if (!searchQuery) return allRecords;
+  const k = searchQuery.toLowerCase();
+  return allRecords.filter(i =>
+    (i.uid||'').toLowerCase().includes(k) ||
+    (i.code||'').toLowerCase().includes(k) ||
+    (i.png||'').toLowerCase().includes(k) ||
+    (i.kh||'').toLowerCase().includes(k)
+  );
+}
+
 function renderList(data) {
   const wrap = document.getElementById('recordList');
-  if (!data || data.length === 0) {
-    wrap.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>Không tìm thấy hồ sơ nào</p></div>`;
+  if (!data || !data.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="emoji">${searchQuery?'🔍':'📭'}</div><p>${searchQuery?'Không tìm thấy hồ sơ nào':'Chưa có hồ sơ nào'}</p></div>`;
     return;
   }
-
   wrap.innerHTML = data.map(item => `
     <div class="record-card" onclick="showDetail('${item._key}')">
       <div class="card-icon">📄</div>
       <div class="card-body">
-        <div class="card-uid">UID: ${item.uid || '—'} &nbsp;|&nbsp; ${item.code || '—'}</div>
-        <div class="card-name">${item.png || '—'}</div>
-        <div class="card-meta">${item.kh || ''} ${item.date ? '· ' + item.date : ''}</div>
+        <div class="card-uid">UID: ${item.uid||'—'} &nbsp;|&nbsp; ${item.code||'—'}</div>
+        <div class="card-name">${item.png||'—'}</div>
+        <div class="card-meta">${item.kh||''} ${item.date?'· '+item.date:''}</div>
       </div>
       <div class="card-arrow">›</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 /* ─── SEARCH ─── */
-function getSearchKey() {
-  const dm = document.getElementById('searchDesktop');
-  const mm = document.getElementById('searchMobile');
-  return (dm && document.activeElement !== mm ? dm.value : mm ? mm.value : dm.value).trim().toLowerCase();
+function syncSearch(el) {
+  searchQuery = el.value.trim();
+  ['searchDesktop','searchMobile'].forEach(id => {
+    const other = document.getElementById(id);
+    if (other && other !== el) other.value = el.value;
+  });
 }
 
 function doSearch() {
-  const key = getSearchKey();
-  if (!key) { renderList(allRecords); return; }
-  const res = allRecords.filter(i =>
-    (i.uid || '').toLowerCase().includes(key) ||
-    (i.code || '').toLowerCase().includes(key) ||
-    (i.png || '').toLowerCase().includes(key) ||
-    (i.kh || '').toLowerCase().includes(key)
-  );
-  renderList(res);
-}
-
-function handleEnterDesktop(e) { if (e.key === 'Enter') doSearch(); }
-function handleEnterMobile(e) { if (e.key === 'Enter') doSearch(); }
-
-// sync search inputs
-document.addEventListener('input', e => {
   const dm = document.getElementById('searchDesktop');
   const mm = document.getElementById('searchMobile');
-  if (e.target === dm && mm) mm.value = dm.value;
-  if (e.target === mm && dm) dm.value = mm.value;
-});
+  searchQuery = (dm?.value || mm?.value || '').trim();
+  renderList(filterRecords());
+}
 
 /* ─── DETAIL ─── */
 function showDetail(key) {
   const item = allRecords.find(i => i._key === key);
   if (!item) return;
-
   const linkBtn = item.link
     ? `<a href="${item.link}" target="_blank" class="btn-open-file">📂 Mở Hồ Sơ</a>`
-    : `<button class="btn-open-file" style="background:#444;cursor:not-allowed;" disabled>⚠️ Chưa có link hồ sơ</button>`;
-
+    : `<button class="btn-open-file" style="background:#555;cursor:not-allowed" disabled>⚠️ Chưa có link</button>`;
   document.getElementById('detailBody').innerHTML = `
     <div class="detail-grid">
-      <div class="detail-row">
-        <div class="detail-label">Mã UID</div>
-        <div class="detail-value mono">${item.uid || '—'}</div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Tham Chiếu</div>
-        <div class="detail-value mono">${item.code || '—'}</div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Tên PNG</div>
-        <div class="detail-value">${item.png || '—'}</div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Ngày XB</div>
-        <div class="detail-value">${item.date || '—'}</div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Khách Hàng</div>
-        <div class="detail-value">${item.kh || '—'}</div>
-      </div>
-    </div>
-    ${linkBtn}
-  `;
-
+      <div class="detail-row"><div class="detail-label">Mã UID</div><div class="detail-value mono">${item.uid||'—'}</div></div>
+      <div class="detail-row"><div class="detail-label">Tham Chiếu</div><div class="detail-value mono">${item.code||'—'}</div></div>
+      <div class="detail-row"><div class="detail-label">Tên PNG</div><div class="detail-value">${item.png||'—'}</div></div>
+      <div class="detail-row"><div class="detail-label">Ngày XB</div><div class="detail-value">${item.date||'—'}</div></div>
+      <div class="detail-row"><div class="detail-label">Khách Hàng</div><div class="detail-value">${item.kh||'—'}</div></div>
+    </div>${linkBtn}`;
   openModal('detailOverlay');
 }
 
 /* ─── ADD ─── */
 function openAdd() {
-  ['fUid','fCode','fPng','fDate','fKh','fLink'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
+  ['fUid','fCode','fPng','fDate','fKh','fLink'].forEach(id => document.getElementById(id).value='');
   openModal('addOverlay');
 }
 
@@ -1242,49 +455,29 @@ async function saveRecord() {
   const date = document.getElementById('fDate').value.trim();
   const kh   = document.getElementById('fKh').value.trim();
   const link = document.getElementById('fLink').value.trim();
-
-  if (!uid || !code || !png) {
-    showToast('⚠️ Vui lòng nhập UID, Mã tham chiếu và Tên PNG', true);
-    return;
-  }
-
+  if (!uid || !code || !png) { showToast('⚠️ Vui lòng nhập UID, Mã tham chiếu và Tên PNG', true); return; }
   const btn = document.getElementById('btnSave');
-  btn.disabled = true;
-  btn.textContent = '⏳ Đang lưu…';
-
+  btn.disabled = true; btn.textContent = '⏳ Đang lưu…';
   try {
-    const db = window._fbDb;
-    const r = window._fbRef;
-    const hosRef = r(db, 'hoSo');
-    await window._fbPush(hosRef, { uid, code, png, date, kh, link });
+    await db.ref('hoSo').push({ uid, code, png, date, kh, link });
     closeModal('addOverlay');
     showToast('✅ Đã thêm hồ sơ thành công!');
   } catch(err) {
-    showToast('❌ Lỗi khi lưu: ' + err.message, true);
+    showToast('❌ Lỗi: ' + err.message, true);
   } finally {
-    btn.disabled = false;
-    btn.textContent = '💾 Lưu Hồ Sơ';
+    btn.disabled = false; btn.textContent = '💾 Lưu Hồ Sơ';
   }
 }
 
 /* ─── MODAL ─── */
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-
-function overlayClick(e, id) {
-  if (e.target === document.getElementById(id)) closeModal(id);
-}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 /* ─── TOAST ─── */
-function showToast(msg, isError = false) {
+function showToast(msg, isError=false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast' + (isError ? ' error' : '');
+  t.className = 'toast' + (isError?' error':'');
   void t.offsetWidth;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);

@@ -85,7 +85,9 @@ html.light .theme-toggle-thumb{transform:translateX(20px);}
   .mobile-search button{padding:10px 14px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:13px;font-family:var(--sans);}
   .grid-list{display:flex;flex-direction:column;gap:0;padding:8px 12px 80px;}
   .record-card{border-radius:12px!important;margin-bottom:8px;}
-  .fab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:50%;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(79,110,247,.5);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .fab-group{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:10px;align-items:flex-end;z-index:100;}
+  .fab{width:54px;height:54px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:50%;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(79,110,247,.5);display:flex;align-items:center;justify-content:center;}
+  .fab-txt{background:linear-gradient(135deg,#0891b2,#0e7490);font-size:20px;box-shadow:0 8px 24px rgba(8,145,178,.5);}
   .top-bar,.page-header{display:none!important;}
 }
 @media(min-width:769px){.mobile-only,.fab,.mobile-header{display:none!important;}}
@@ -194,8 +196,10 @@ html.light .theme-toggle-thumb{transform:translateX(20px);}
       <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
     </div>
     <button class="btn-add-sidebar" onclick="openAdd()">＋ Thêm Hồ Sơ Mới</button>
-    <button class="btn-add-sidebar" onclick="forceReseed()" style="background:linear-gradient(135deg,#0891b2,#0e7490);margin-bottom:10px;">🔄 Đồng Bộ Hồ Sơ Gốc</button>
-    <button class="btn-add-sidebar" onclick="resetAndReseed()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);margin-bottom:10px;">🗑 Xóa Sạch & Nạp Lại Toàn Bộ</button>
+    <label class="btn-add-sidebar" style="background:linear-gradient(135deg,#0891b2,#0e7490);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      📄 Upload File TXT
+      <input type="file" accept=".txt" onchange="uploadTxt(event)" style="display:none;">
+    </label>
     <button class="btn-logout-sidebar" onclick="doLogout()">⎋ Đăng Xuất</button>
   </aside>
 
@@ -234,7 +238,13 @@ html.light .theme-toggle-thumb{transform:translateX(20px);}
   </main>
 </div>
 
-<button class="fab mobile-only" onclick="openAdd()">＋</button>
+<div class="fab-group mobile-only">
+  <button class="fab" onclick="openAdd()">＋</button>
+  <label class="fab fab-txt" title="Upload TXT">
+    📄
+    <input type="file" accept=".txt" onchange="uploadTxt(event)" style="display:none;">
+  </label>
+</div>
 
 <!-- DETAIL MODAL -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeModal('detailOverlay')">
@@ -382,41 +392,50 @@ function startListening() {
   });
 }
 
-/* ─── FORCE RESEED (dùng khi cần đồng bộ lại toàn bộ dữ liệu gốc) ─── */
-async function forceReseed() {
-  if (!confirm('Đồng bộ lại toàn bộ 16 hồ sơ gốc vào Firebase?\n(Chỉ thêm hồ sơ còn thiếu, không xóa hồ sơ đã có)')) return;
-  const hosRef = db.ref('hoSo');
-  const snap = await hosRef.once('value');
-  const existingUIDs = new Set();
-  if (snap.exists()) {
-    snap.forEach(child => {
-      const v = child.val();
-      if (v && v.uid) existingUIDs.add(String(v.uid));
-    });
-  }
-  const missing = SEED.filter(item => !existingUIDs.has(String(item.uid)));
-  if (missing.length === 0) {
-    showToast('✅ Tất cả hồ sơ gốc đã có đủ!');
-    return;
-  }
-  for (const item of missing) { await hosRef.push(item); }
-  showToast(`✅ Đã thêm ${missing.length} hồ sơ còn thiếu!`);
+/* ─── UPLOAD TXT ─── */
+function uploadTxt(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const text = e.target.result;
+    const record = parseTxt(text);
+    if (!record.uid || !record.code || !record.png) {
+      showToast('⚠️ File TXT thiếu: Mã UID, Mã Tham Chiếu hoặc Tên PNG', true);
+      event.target.value = '';
+      return;
+    }
+    try {
+      await db.ref('hoSo').push(record);
+      showToast('✅ Đã thêm hồ sơ từ file TXT!');
+    } catch(err) {
+      showToast('❌ Lỗi: ' + err.message, true);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
-/* ─── RESET & RESEED TOÀN BỘ ─── */
-async function resetAndReseed() {
-  if (!confirm('⚠️ XÓA SẠCH toàn bộ dữ liệu Firebase và nạp lại 16 hồ sơ gốc?\n\nHành động này KHÔNG THỂ hoàn tác!')) return;
-  if (!confirm('Xác nhận lần 2: Bạn chắc chắn muốn xóa sạch và nạp lại?')) return;
-  try {
-    showToast('⏳ Đang xóa và nạp lại…');
-    const hosRef = db.ref('hoSo');
-    await hosRef.remove();
-    for (const item of SEED) { await hosRef.push(item); }
-    showToast('✅ Đã nạp lại đầy đủ 16 hồ sơ gốc!');
-  } catch(err) {
-    showToast('❌ Lỗi: ' + err.message, true);
-  }
+function parseTxt(text) {
+  const map = {
+    'Mã UID'                  : 'uid',
+    'Mã Tham Chiếu'           : 'code',
+    'Tên PNG'                 : 'png',
+    'Ngày Xuất Bản'           : 'date',
+    'Tên Khách Hàng'          : 'kh',
+    'Link Hồ Sơ (Google Drive)': 'link',
+  };
+  const record = {};
+  text.split('\n').forEach(line => {
+    const idx = line.indexOf(':');
+    if (idx === -1) return;
+    const key = line.slice(0, idx).trim();
+    const val = line.slice(idx + 1).trim();
+    if (map[key]) record[map[key]] = val;
+  });
+  return record;
 }
+
 function updateCount(n) {
   ['totalCount','totalCountD'].forEach(id => {
     const el = document.getElementById(id);

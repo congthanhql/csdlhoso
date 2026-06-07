@@ -194,6 +194,7 @@ html.light .theme-toggle-thumb{transform:translateX(20px);}
       <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
     </div>
     <button class="btn-add-sidebar" onclick="openAdd()">＋ Thêm Hồ Sơ Mới</button>
+    <button class="btn-add-sidebar" onclick="forceReseed()" style="background:linear-gradient(135deg,#0891b2,#0e7490);margin-bottom:10px;">🔄 Đồng Bộ Hồ Sơ Gốc</button>
     <button class="btn-logout-sidebar" onclick="doLogout()">⎋ Đăng Xuất</button>
   </aside>
 
@@ -352,12 +353,22 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 /* ─── FIREBASE LISTEN ─── */
 function startListening() {
   const hosRef = db.ref('hoSo');
-  // Seed if empty
+
+  // Smart seed: chỉ thêm UID nào chưa có trong DB
   hosRef.once('value', snap => {
-    if (!snap.exists()) {
-      SEED.forEach(item => hosRef.push(item));
+    const existingUIDs = new Set();
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const v = child.val();
+        if (v && v.uid) existingUIDs.add(String(v.uid));
+      });
+    }
+    const missing = SEED.filter(item => !existingUIDs.has(String(item.uid)));
+    if (missing.length > 0) {
+      missing.forEach(item => hosRef.push(item));
     }
   });
+
   // Realtime listener
   hosRef.on('value', snap => {
     allRecords = [];
@@ -368,6 +379,27 @@ function startListening() {
     updateCount(allRecords.length);
     renderList(filterRecords());
   });
+}
+
+/* ─── FORCE RESEED (dùng khi cần đồng bộ lại toàn bộ dữ liệu gốc) ─── */
+async function forceReseed() {
+  if (!confirm('Đồng bộ lại toàn bộ 16 hồ sơ gốc vào Firebase?\n(Chỉ thêm hồ sơ còn thiếu, không xóa hồ sơ đã có)')) return;
+  const hosRef = db.ref('hoSo');
+  const snap = await hosRef.once('value');
+  const existingUIDs = new Set();
+  if (snap.exists()) {
+    snap.forEach(child => {
+      const v = child.val();
+      if (v && v.uid) existingUIDs.add(String(v.uid));
+    });
+  }
+  const missing = SEED.filter(item => !existingUIDs.has(String(item.uid)));
+  if (missing.length === 0) {
+    showToast('✅ Tất cả hồ sơ gốc đã có đủ!');
+    return;
+  }
+  for (const item of missing) { await hosRef.push(item); }
+  showToast(`✅ Đã thêm ${missing.length} hồ sơ còn thiếu!`);
 }
 
 /* ─── COUNT ─── */

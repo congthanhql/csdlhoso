@@ -75,12 +75,109 @@ document.addEventListener('DOMContentLoaded', () => {
   --sans: 'Sora', sans-serif;
   --radius: 14px;
   --shadow: 0 4px 24px rgba(0,0,0,.4);
+  --transition-theme: background .3s, color .3s, border-color .3s, box-shadow .3s;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+/* ─── LIGHT THEME ─── */
+html.light {
+  --bg: #f0f2f8;
+  --surface: #ffffff;
+  --surface2: #f5f7ff;
+  --border: #dde2f0;
+  --accent: #3b5de7;
+  --accent2: #6d28d9;
+  --success: #059669;
+  --danger: #dc2626;
+  --text: #1a1d2e;
+  --text2: #5a6480;
+  --text3: #9aa3bf;
+  --shadow: 0 4px 24px rgba(0,0,0,.10);
+}
+
+html.light ::-webkit-scrollbar-track { background: var(--bg); }
+html.light ::-webkit-scrollbar-thumb { background: var(--border); }
+
+* { margin:0; padding:0; box-sizing:border-box; transition: background-color .3s, border-color .3s, color .25s, box-shadow .3s; }
 html, body { height:100%; font-family: var(--sans); background: var(--bg); color: var(--text); }
 
-/* ─── SCROLLBAR ─── */
+/* ─── THEME TOGGLE ─── */
+.theme-toggle {
+  width:44px; height:24px;
+  background: var(--surface2);
+  border:1px solid var(--border);
+  border-radius:30px;
+  cursor:pointer;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  padding:2px;
+  transition: background .3s, border-color .3s;
+  flex-shrink:0;
+}
+
+.theme-toggle-thumb {
+  width:18px; height:18px;
+  border-radius:50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  transform: translateX(0);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px;
+}
+
+html.light .theme-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.theme-toggle-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  background: var(--surface2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+  user-select:none;
+  transition:.2s;
+}
+
+.theme-toggle-row:hover { border-color: var(--accent); }
+
+.theme-toggle-label {
+  font-size:13px;
+  font-weight:600;
+  color: var(--text2);
+  flex:1;
+}
+
+/* Light mode specific tweaks */
+html.light .sidebar {
+  box-shadow: 2px 0 16px rgba(0,0,0,.06);
+}
+
+html.light .record-card:hover {
+  box-shadow: 0 8px 24px rgba(59,93,231,.12);
+}
+
+html.light .login-card {
+  box-shadow: 0 10px 40px rgba(0,0,0,.10);
+}
+
+html.light #loginPage {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,93,231,.12) 0%, transparent 70%), var(--bg);
+}
+
+html.light .modal-card {
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+
+html.light .sb-stat-value { color: var(--accent); }
+
+html.light .card-uid { color: var(--accent); }
+
+html.light .detail-value.mono { color: var(--accent); }
 ::-webkit-scrollbar { width:6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
@@ -795,7 +892,7 @@ html, body { height:100%; font-family: var(--sans); background: var(--bg); color
   <div class="login-card">
     <div class="login-logo">
       <div class="logo-icon">📂</div>
-      <h1>T-SHARE QL HỒ SƠ</h1>
+      <h1>CT-EDU Lookup</h1>
       <p>Hệ thống quản lý hồ sơ</p>
     </div>
 
@@ -821,8 +918,8 @@ html, body { height:100%; font-family: var(--sans); background: var(--bg); color
     <div class="sidebar-logo">
       <div class="sb-icon">📂</div>
       <div>
-        <div class="sb-title">CT-EDU</div>
-        <div class="sb-sub">Lookup System</div>
+        <div class="sb-title">CSDL HỒ SƠ</div>
+        <div class="sb-sub">T-SHARE TRẢI BÀI</div>
       </div>
     </div>
 
@@ -832,6 +929,11 @@ html, body { height:100%; font-family: var(--sans); background: var(--bg); color
     </div>
 
     <div class="sb-spacer"></div>
+
+    <div class="theme-toggle-row" onclick="toggleTheme()">
+      <span class="theme-toggle-label" id="themeLabel">🌙 Giao diện tối</span>
+      <div class="theme-toggle"><div class="theme-toggle-thumb">☀️</div></div>
+    </div>
 
     <button class="btn-add-sidebar" onclick="openAdd()">
       ＋ Thêm Hồ Sơ Mới
@@ -850,6 +952,7 @@ html, body { height:100%; font-family: var(--sans); background: var(--bg); color
       <div class="mobile-header-top">
         <div class="mobile-title">📂 CT-EDU</div>
         <div class="mobile-actions">
+          <button class="icon-btn" onclick="toggleTheme()" id="mobileThemeBtn" style="background:var(--surface2);border:1px solid var(--border);font-size:17px;">🌙</button>
           <button class="icon-btn logout" onclick="doLogout()">⎋</button>
         </div>
       </div>
@@ -940,8 +1043,36 @@ const LOGIN_PASS = "Thanh123@";
 
 let allRecords = [];
 
-/* ─── LOGIN ─── */
-function doLogin() {
+/* ─── THEME ─── */
+function applyTheme(isLight) {
+  const html = document.documentElement;
+  const label = document.getElementById('themeLabel');
+  const mobileBtn = document.getElementById('mobileThemeBtn');
+  if (isLight) {
+    html.classList.add('light');
+    if (label) label.textContent = '☀️ Giao diện sáng';
+    if (mobileBtn) mobileBtn.textContent = '☀️';
+  } else {
+    html.classList.remove('light');
+    if (label) label.textContent = '🌙 Giao diện tối';
+    if (mobileBtn) mobileBtn.textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  const isCurrentlyLight = document.documentElement.classList.contains('light');
+  const newIsLight = !isCurrentlyLight;
+  localStorage.setItem('ct-edu-theme', newIsLight ? 'light' : 'dark');
+  applyTheme(newIsLight);
+}
+
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem('ct-edu-theme');
+  if (saved === 'light') applyTheme(true);
+})();
+
+
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
   if (u === LOGIN_USER && p === LOGIN_PASS) {
